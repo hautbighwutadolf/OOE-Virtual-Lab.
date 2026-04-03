@@ -60,7 +60,9 @@
 > **Instruction for Project Leaders:** Once you have activated **GitHub Pages** in your settings, replace the URL below with your actual live link.
 
 [🚀 Click under to view the Interactive Simulation]
-: https://hautbighwutadolf.github.io/OOE-Virtual-Lab./TD3/index.html
+Project 3: https://hautbighwutadolf.github.io/OOE-Virtual-Lab./TD3/index.html
+Project 2: https://hautbighwutadolf.github.io/OOE-Virtual-Lab./TD2/index.html
+Project 1: https://hautbighwutadolf.github.io/OOE-Virtual-Lab./TD1/index.html
 
 ---
 
