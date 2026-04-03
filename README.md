@@ -62,7 +62,7 @@
 [🚀 Click under to view the Interactive Simulation]
 for Project 1: https://hautbighwutadolf.github.io/OOE-Virtual-Lab./TD1/
 for Project 2: https://hautbighwutadolf.github.io/OOE-Virtual-Lab./
-for Project 3: https://hautbighwutadolf.github.io/OOE-Virtual-Lab./TD 2/index.html
+for Project 3: https://hautbighwutadolf.github.io/OOE-Virtual-Lab./TD3/index.html
 
 ---
 
