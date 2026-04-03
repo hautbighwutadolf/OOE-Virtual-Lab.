@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CHEMICAL LOCK — Snell's Law</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;500;700&display=swap');
+
+  :root {
+    --cyan: #00ffe7;
+    --amber: #ffb700;
+    --red: #ff3c5a;
+    --green: #39ff14;
+    --bg: #050a10;
+    --panel: #0a1520;
+    --border: #1a3a5c;
+    --text: #c8e8ff;
+    --dim: #3a6080;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Rajdhani', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+    background-image:
+      radial-gradient(ellipse at 20% 50%, rgba(0,80,120,0.08) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 20%, rgba(0,60,100,0.08) 0%, transparent 60%),
+      linear-gradient(rgba(0,255,231,0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,255,231,0.02) 1px, transparent 1px);
+    background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px;
+  }
+
+  /* HEADER */
+  #header {
+    text-align: center;
+    padding: 18px 20px 10px;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+  }
+  #header h1 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 2rem;
+    font-weight: 900;
+    letter-spacing: 0.2em;
+    color: var(--cyan);
+    text-shadow: 0 0 20px rgba(0,255,231,0.6), 0 0 40px rgba(0,255,231,0.2);
+  }
+  #header p {
+    font-size: 0.85rem;
+    color: var(--dim);
+    letter-spacing: 0.15em;
+    margin-top: 4px;
+    font-family: 'Share Tech Mono', monospace;
+  }
+  .level-badge {
+    position: absolute;
+    top: 18px; right: 24px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--amber);
+    border: 1px solid var(--amber);
+    padding: 4px 10px;
+    border-radius: 3px;
+    text-shadow: 0 0 8px var(--amber);
+  }
+
+  /* LAYOUT */
+  #main {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 16px;
+    padding: 16px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  /* PANELS */
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+  .panel::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+    opacity: 0.5;
+  }
+  .panel-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    color: var(--dim);
+    margin-bottom: 12px;
+    text-transform: uppercase;
+  }
+
+  /* CANVAS AREA */
+  #canvas-panel { padding: 12px; }
+  #gameCanvas {
+    display: block;
+    cursor: crosshair;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: #020810;
+    width: 100%;
+  }
+
+  /* ANGLE SLIDER */
+  #controls {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+  }
+  .ctrl-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--dim);
+    white-space: nowrap;
+  }
+  input[type=range] {
+    -webkit-appearance: none;
+    flex: 1;
+    min-width: 100px;
+    height: 4px;
+    background: linear-gradient(90deg, var(--cyan), var(--border));
+    border-radius: 2px;
+    outline: none;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--cyan);
+    box-shadow: 0 0 10px var(--cyan);
+    cursor: pointer;
+  }
+  .angle-display {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 1.1rem;
+    color: var(--cyan);
+    min-width: 50px;
+    text-align: right;
+    text-shadow: 0 0 8px var(--cyan);
+  }
+
+  /* READINGS */
+  #readings {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 12px;
+  }
+  .reading-box {
+    background: rgba(0,0,0,0.4);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 10px 14px;
+  }
+  .reading-box .rlabel {
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    color: var(--dim);
+    font-family: 'Share Tech Mono', monospace;
+  }
+  .reading-box .rval {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 1.4rem;
+    color: var(--amber);
+    text-shadow: 0 0 10px rgba(255,183,0,0.4);
+    margin-top: 2px;
+  }
+  .reading-box.highlight .rval {
+    color: var(--green);
+    text-shadow: 0 0 10px rgba(57,255,20,0.5);
+    font-size: 1.6rem;
+  }
+
+  /* SNELL FORMULA DISPLAY */
+  #formula-bar {
+    margin-top: 12px;
+    background: rgba(0,0,0,0.5);
+    border: 1px solid rgba(0,255,231,0.15);
+    border-radius: 4px;
+    padding: 10px 14px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.85rem;
+    color: var(--text);
+    text-align: center;
+    letter-spacing: 0.05em;
+  }
+  #formula-bar span { color: var(--cyan); }
+  #formula-bar .calc { color: var(--amber); }
+
+  /* RIGHT PANEL */
+  #right-col { display: flex; flex-direction: column; gap: 14px; }
+
+  /* LOCK */
+  #lock-panel { text-align: center; padding: 20px; }
+  #vault-svg {
+    width: 120px; height: 120px;
+    margin: 0 auto 14px;
+    display: block;
+    filter: drop-shadow(0 0 12px rgba(0,255,231,0.3));
+  }
+  .lock-status {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.8rem;
+    letter-spacing: 0.15em;
+    color: var(--red);
+    text-shadow: 0 0 8px var(--red);
+    margin-bottom: 8px;
+  }
+  .lock-status.unlocked { color: var(--green); text-shadow: 0 0 8px var(--green); }
+
+  /* ANSWER INPUT */
+  #answer-section { margin-top: 8px; }
+  .liquid-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    margin: 10px 0;
+  }
+  .liquid-btn {
+    background: rgba(0,0,0,0.4);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 8px 6px;
+    color: var(--text);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+  }
+  .liquid-btn:hover {
+    border-color: var(--cyan);
+    color: var(--cyan);
+    background: rgba(0,255,231,0.05);
+  }
+  .liquid-btn.selected {
+    border-color: var(--amber);
+    color: var(--amber);
+    background: rgba(255,183,0,0.08);
+  }
+  .liquid-btn.correct {
+    border-color: var(--green);
+    color: var(--green);
+    background: rgba(57,255,20,0.1);
+    animation: pulse-green 0.6s ease;
+  }
+  .liquid-btn.wrong {
+    border-color: var(--red);
+    color: var(--red);
+    background: rgba(255,60,90,0.1);
+    animation: shake 0.3s ease;
+  }
+
+  @keyframes pulse-green {
+    0%,100% { box-shadow: 0 0 0 rgba(57,255,20,0); }
+    50% { box-shadow: 0 0 20px rgba(57,255,20,0.5); }
+  }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    25% { transform: translateX(-4px); }
+    75% { transform: translateX(4px); }
+  }
+
+  .submit-btn {
+    width: 100%;
+    padding: 10px;
+    background: linear-gradient(135deg, rgba(0,255,231,0.1), rgba(0,200,180,0.05));
+    border: 1px solid var(--cyan);
+    border-radius: 4px;
+    color: var(--cyan);
+    font-family: 'Orbitron', monospace;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-shadow: 0 0 8px var(--cyan);
+  }
+  .submit-btn:hover {
+    background: rgba(0,255,231,0.15);
+    box-shadow: 0 0 20px rgba(0,255,231,0.2);
+  }
+  .submit-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  /* REFERENCE TABLE */
+  #ref-panel { font-size: 0.8rem; }
+  .ref-table { width: 100%; border-collapse: collapse; }
+  .ref-table th {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--dim);
+    letter-spacing: 0.1em;
+    text-align: left;
+    padding: 4px 6px;
+    border-bottom: 1px solid var(--border);
+  }
+  .ref-table td {
+    padding: 5px 6px;
+    border-bottom: 1px solid rgba(26,58,92,0.4);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--text);
+  }
+  .ref-table tr:hover td { background: rgba(0,255,231,0.03); }
+  .ref-table td:last-child { color: var(--amber); text-align: right; }
+
+  /* SCORE */
+  #score-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 14px;
+    background: rgba(0,0,0,0.4);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.8rem;
+  }
+  .score-val { color: var(--cyan); font-size: 1.1rem; text-shadow: 0 0 8px var(--cyan); }
+
+  /* MESSAGE */
+  #message {
+    text-align: center;
+    font-family: 'Orbitron', monospace;
+    font-size: 0.8rem;
+    letter-spacing: 0.1em;
+    min-height: 22px;
+    transition: all 0.3s;
+  }
+
+  /* NEXT BTN */
+  .next-btn {
+    display: none;
+    width: 100%;
+    margin-top: 8px;
+    padding: 10px;
+    background: linear-gradient(135deg, rgba(57,255,20,0.1), transparent);
+    border: 1px solid var(--green);
+    border-radius: 4px;
+    color: var(--green);
+    font-family: 'Orbitron', monospace;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    cursor: pointer;
+    text-shadow: 0 0 8px var(--green);
+    transition: all 0.2s;
+  }
+  .next-btn:hover { background: rgba(57,255,20,0.15); box-shadow: 0 0 20px rgba(57,255,20,0.2); }
+
+  /* WIN SCREEN */
+  #win-screen {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(2,8,16,0.95);
+    z-index: 100;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 20px;
+  }
+  #win-screen h2 {
+    font-family: 'Orbitron', monospace;
+    font-size: 2.5rem;
+    color: var(--green);
+    text-shadow: 0 0 30px var(--green), 0 0 60px rgba(57,255,20,0.3);
+    animation: flicker 2s infinite;
+  }
+  @keyframes flicker {
+    0%,100%{opacity:1}90%{opacity:0.9}92%{opacity:0.7}94%{opacity:1}
+  }
+  #win-screen p { font-size: 1.1rem; color: var(--text); }
+  #win-screen .final-score { font-family: 'Share Tech Mono', monospace; font-size: 2rem; color: var(--amber); }
+  .restart-btn {
+    padding: 12px 32px;
+    background: rgba(0,255,231,0.1);
+    border: 1px solid var(--cyan);
+    border-radius: 4px;
+    color: var(--cyan);
+    font-family: 'Orbitron', monospace;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    cursor: pointer;
+    text-shadow: 0 0 8px var(--cyan);
+    transition: all 0.2s;
+  }
+  .restart-btn:hover { background: rgba(0,255,231,0.2); box-shadow: 0 0 30px rgba(0,255,231,0.3); }
+
+  @media(max-width:700px){
+    #main{grid-template-columns:1fr;}
+    #header h1{font-size:1.3rem;}
+  }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <h1>⚗ CHEMICAL LOCK</h1>
+  <p>IDENTIFY THE LIQUID USING SNELL'S LAW — UNLOCK THE VAULT</p>
+  <div class="level-badge" id="level-badge">LEVEL 1 / 5</div>
+</div>
+
+<div id="main">
+  <!-- LEFT: SIMULATION -->
+  <div>
+    <div class="panel" id="canvas-panel">
+      <div class="panel-title">▸ OPTICAL REFRACTION CHAMBER</div>
+      <canvas id="gameCanvas" width="700" height="380"></canvas>
+      <div id="controls">
+        <span class="ctrl-label">INCIDENT ANGLE θ₁</span>
+        <input type="range" id="angleSlider" min="5" max="75" value="35" step="1">
+        <span class="angle-display" id="angleVal">35°</span>
+      </div>
+      <div id="readings">
+        <div class="reading-box">
+          <div class="rlabel">INCIDENT ANGLE (θ₁)</div>
+          <div class="rval" id="r-theta1">35.0°</div>
+        </div>
+        <div class="reading-box">
+          <div class="rlabel">REFRACTED ANGLE (θ₂)</div>
+          <div class="rval" id="r-theta2">—°</div>
+        </div>
+        <div class="reading-box">
+          <div class="rlabel">sin(θ₁)</div>
+          <div class="rval" id="r-sin1">—</div>
+        </div>
+        <div class="reading-box highlight">
+          <div class="rlabel">CALCULATED n₂</div>
+          <div class="rval" id="r-n">—</div>
+        </div>
+      </div>
+      <div id="formula-bar">
+        Snell's Law: <span>n₁ · sin(θ₁) = n₂ · sin(θ₂)</span>
+        &nbsp;→&nbsp;
+        <span>n₂</span> = <span>1.000</span> × <span id="fml-s1">sin(θ₁)</span> / <span id="fml-s2">sin(θ₂)</span>
+        = <span class="calc" id="fml-result">?</span>
+      </div>
+    </div>
+
+    <!-- REF TABLE (bottom on wide) -->
+    <div class="panel" style="margin-top:14px;">
+      <div class="panel-title">▸ REFRACTIVE INDEX REFERENCE DATABASE</div>
+      <table class="ref-table">
+        <thead>
+          <tr>
+            <th>SUBSTANCE</th>
+            <th>FORMULA</th>
+            <th style="text-align:right">n (at 589nm)</th>
+          </tr>
+        </thead>
+        <tbody id="ref-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- RIGHT -->
+  <div id="right-col">
+    <!-- LOCK -->
+    <div class="panel" id="lock-panel">
+      <div class="panel-title">▸ VAULT LOCK STATUS</div>
+      <svg id="vault-svg" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Vault body -->
+        <rect x="10" y="20" width="100" height="85" rx="8" fill="#0a1520" stroke="#1a3a5c" stroke-width="2"/>
+        <rect x="18" y="28" width="84" height="69" rx="5" fill="#050a10" stroke="#1a3a5c" stroke-width="1"/>
+        <!-- Handle -->
+        <circle cx="60" cy="62" r="22" fill="#0a1520" stroke="#1a3a5c" stroke-width="2"/>
+        <circle cx="60" cy="62" r="14" fill="#050a10" stroke="#1a3a5c" stroke-width="1.5"/>
+        <!-- Dial marks -->
+        <g id="dial-marks" stroke="#1a3a5c" stroke-width="1.5">
+          <line x1="60" y1="38" x2="60" y2="43"/>
+          <line x1="60" y1="81" x2="60" y2="86"/>
+          <line x1="36" y1="62" x2="41" y2="62"/>
+          <line x1="79" y1="62" x2="84" y2="62"/>
+          <line x1="44.3" y1="46.3" x2="47.8" y2="49.8"/>
+          <line x1="72.2" y1="74.2" x2="75.7" y2="77.7"/>
+          <line x1="75.7" y1="46.3" x2="72.2" y2="49.8"/>
+          <line x1="47.8" y1="74.2" x2="44.3" y2="77.7"/>
+        </g>
+        <!-- Dial pointer -->
+        <line id="dial-pointer" x1="60" y1="62" x2="60" y2="49" stroke="#00ffe7" stroke-width="2.5" stroke-linecap="round"/>
+        <circle cx="60" cy="62" r="4" fill="#00ffe7" opacity="0.8"/>
+        <!-- Lock shackle -->
+        <g id="lock-shackle">
+          <rect x="45" y="8" width="30" height="16" rx="8" fill="#0a1520" stroke="#ff3c5a" stroke-width="2"/>
+          <text x="60" y="20" text-anchor="middle" font-family="Share Tech Mono" font-size="8" fill="#ff3c5a">LOCKED</text>
+        </g>
+        <!-- Unlock indicator (hidden initially) -->
+        <g id="unlock-indicator" opacity="0">
+          <circle cx="60" cy="16" r="10" fill="#0a1520" stroke="#39ff14" stroke-width="2"/>
+          <text x="60" y="20" text-anchor="middle" font-family="Share Tech Mono" font-size="7" fill="#39ff14">OPEN</text>
+        </g>
+      </svg>
+      <div class="lock-status" id="lock-status">🔒 LOCKED — IDENTIFY THE LIQUID</div>
+      <div id="score-bar">
+        <span>SCORE</span>
+        <span class="score-val" id="score-display">0</span>
+        <span>ATTEMPTS LEFT: <span id="attempts-left" style="color:var(--amber)">3</span></span>
+      </div>
+    </div>
+
+    <!-- GUESS -->
+    <div class="panel">
+      <div class="panel-title">▸ LIQUID IDENTIFICATION</div>
+      <div style="font-size:0.8rem; color:var(--dim); font-family:'Share Tech Mono',monospace; margin-bottom:6px;">
+        UNKNOWN SUBSTANCE: <span style="color:var(--cyan)" id="liquid-hint">?</span>
+      </div>
+      <div id="answer-section">
+        <div class="liquid-grid" id="liquid-grid"></div>
+        <div id="message" style="color:var(--dim); margin-bottom:8px;"></div>
+        <button class="submit-btn" id="submit-btn" onclick="checkAnswer()">⬡ SUBMIT IDENTIFICATION</button>
+        <button class="next-btn" id="next-btn" onclick="nextLevel()">▶ NEXT LEVEL</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- WIN SCREEN -->
+<div id="win-screen">
+  <h2>🔓 ALL VAULTS UNLOCKED</h2>
+  <p>You successfully identified all chemical substances using Snell's Law!</p>
+  <div class="final-score" id="final-score">SCORE: 0</div>
+  <button class="restart-btn" onclick="restartGame()">↺ PLAY AGAIN</button>
+</div>
+
+<script>
+const LIQUIDS = [
+  { name: "Water",          formula: "H₂O",   n: 1.333, color: "rgba(100,180,255,0.55)" },
+  { name: "Ethanol",        formula: "C₂H₅OH",n: 1.361, color: "rgba(180,255,180,0.45)" },
+  { name: "Acetone",        formula: "C₃H₆O", n: 1.359, color: "rgba(200,230,255,0.4)"  },
+  { name: "Glycerol",       formula: "C₃H₈O₃",n: 1.473, color: "rgba(255,240,150,0.5)"  },
+  { name: "Olive Oil",      formula: "C₁₈H₃₄O₂",n:1.467,color:"rgba(200,220,80,0.5)"   },
+  { name: "Benzene",        formula: "C₆H₆",  n: 1.501, color: "rgba(255,200,100,0.5)"  },
+  { name: "Turpentine",     formula: "C₁₀H₁₆",n: 1.472, color: "rgba(255,170,80,0.5)"   },
+  { name: "Carbon Disulf.", formula: "CS₂",   n: 1.628, color: "rgba(255,130,50,0.55)"  },
+];
+
+const LEVELS = [0, 1, 2, 3, 4]; // indices into LIQUIDS
+let currentLevel = 0;
+let score = 0;
+let attempts = 3;
+let selectedBtn = null;
+let isLevelComplete = false;
+let dialAngle = 0;
+let dialAnimFrame;
+
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const slider = document.getElementById('angleSlider');
+
+// Populate reference table
+const refData = [
+  ...LIQUIDS,
+  { name: "Air",    formula: "N₂/O₂", n: 1.000 },
+  { name: "Glass (crown)", formula: "SiO₂", n: 1.520 },
+];
+const tbody = document.getElementById('ref-tbody');
+refData.forEach(l => {
+  const tr = document.createElement('tr');
+  tr.innerHTML = `<td>${l.name}</td><td style="color:var(--dim)">${l.formula}</td><td>${l.n.toFixed(3)}</td>`;
+  tbody.appendChild(tr);
+});
+
+// Build liquid choice buttons
+function buildButtons() {
+  const grid = document.getElementById('liquid-grid');
+  grid.innerHTML = '';
+  selectedBtn = null;
+  // Pick 4 options: the correct one + 3 random others
+  const correctIdx = LEVELS[currentLevel];
+  const others = LIQUIDS.filter((_, i) => i !== correctIdx);
+  // shuffle others and pick 3
+  const shuffled = others.sort(() => Math.random() - 0.5).slice(0, 3);
+  const options = [LIQUIDS[correctIdx], ...shuffled].sort(() => Math.random() - 0.5);
+  options.forEach(liq => {
+    const btn = document.createElement('button');
+    btn.className = 'liquid-btn';
+    btn.textContent = liq.name;
+    btn.dataset.name = liq.name;
+    btn.onclick = () => selectLiquid(btn);
+    grid.appendChild(btn);
+  });
+}
+
+function selectLiquid(btn) {
+  if (isLevelComplete) return;
+  document.querySelectorAll('.liquid-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  selectedBtn = btn;
+}
+
+function checkAnswer() {
+  if (!selectedBtn || isLevelComplete) return;
+  const correct = LIQUIDS[LEVELS[currentLevel]];
+  if (selectedBtn.dataset.name === correct.name) {
+    selectedBtn.classList.remove('selected');
+    selectedBtn.classList.add('correct');
+    setMessage(`✓ CORRECT! ${correct.name} identified. n = ${correct.n}`, 'var(--green)');
+    const pts = attempts === 3 ? 100 : attempts === 2 ? 60 : 30;
+    score += pts;
+    document.getElementById('score-display').textContent = score;
+    unlockVault();
+    isLevelComplete = true;
+    document.getElementById('submit-btn').disabled = true;
+    if (currentLevel < LEVELS.length - 1) {
+      document.getElementById('next-btn').style.display = 'block';
+    } else {
+      setTimeout(showWin, 1200);
+    }
+  } else {
+    selectedBtn.classList.remove('selected');
+    selectedBtn.classList.add('wrong');
+    attempts--;
+    document.getElementById('attempts-left').textContent = attempts;
+    setMessage(`✗ INCORRECT. ${3 - attempts} attempt(s) used.`, 'var(--red)');
+    setTimeout(() => selectedBtn && selectedBtn.classList.remove('wrong'), 500);
+    if (attempts <= 0) {
+      setMessage(`✗ FAILED. It was ${correct.name} (n=${correct.n})`, 'var(--red)');
+      isLevelComplete = true;
+      document.getElementById('submit-btn').disabled = true;
+      if (currentLevel < LEVELS.length - 1) {
+        document.getElementById('next-btn').style.display = 'block';
+      } else {
+        setTimeout(showWin, 1200);
+      }
+    }
+  }
+}
+
+function setMessage(msg, color) {
+  const el = document.getElementById('message');
+  el.textContent = msg;
+  el.style.color = color;
+}
+
+function nextLevel() {
+  currentLevel++;
+  attempts = 3;
+  isLevelComplete = false;
+  document.getElementById('submit-btn').disabled = false;
+  document.getElementById('next-btn').style.display = 'none';
+  document.getElementById('level-badge').textContent = `LEVEL ${currentLevel + 1} / 5`;
+  document.getElementById('attempts-left').textContent = attempts;
+  setMessage('', 'var(--dim)');
+  lockVault();
+  buildButtons();
+  drawScene();
+}
+
+function restartGame() {
+  currentLevel = 0; score = 0; attempts = 3; isLevelComplete = false;
+  document.getElementById('score-display').textContent = 0;
+  document.getElementById('level-badge').textContent = 'LEVEL 1 / 5';
+  document.getElementById('attempts-left').textContent = 3;
+  document.getElementById('submit-btn').disabled = false;
+  document.getElementById('next-btn').style.display = 'none';
+  document.getElementById('win-screen').style.display = 'none';
+  setMessage('', 'var(--dim)');
+  lockVault();
+  buildButtons();
+  drawScene();
+}
+
+function showWin() {
+  document.getElementById('final-score').textContent = `SCORE: ${score}`;
+  document.getElementById('win-screen').style.display = 'flex';
+}
+
+// VAULT ANIMATION
+function unlockVault() {
+  document.getElementById('lock-status').className = 'lock-status unlocked';
+  document.getElementById('lock-status').textContent = '🔓 UNLOCKED — SUBSTANCE IDENTIFIED';
+  document.getElementById('lock-shackle').style.opacity = '0';
+  document.getElementById('unlock-indicator').style.opacity = '1';
+  animateDial(0, 360);
+}
+function lockVault() {
+  document.getElementById('lock-status').className = 'lock-status';
+  document.getElementById('lock-status').textContent = '🔒 LOCKED — IDENTIFY THE LIQUID';
+  document.getElementById('lock-shackle').style.opacity = '1';
+  document.getElementById('unlock-indicator').style.opacity = '0';
+  document.getElementById('dial-pointer').setAttribute('x2', '60');
+  document.getElementById('dial-pointer').setAttribute('y2', '49');
+}
+function animateDial(from, to) {
+  let start = null;
+  function step(ts) {
+    if (!start) start = ts;
+    const p = Math.min((ts - start) / 800, 1);
+    const angle = from + (to - from) * p;
+    const rad = (angle - 90) * Math.PI / 180;
+    const x2 = 60 + 13 * Math.cos(rad);
+    const y2 = 62 + 13 * Math.sin(rad);
+    document.getElementById('dial-pointer').setAttribute('x2', x2.toFixed(1));
+    document.getElementById('dial-pointer').setAttribute('y2', y2.toFixed(1));
+    if (p < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+// CANVAS DRAWING
+function drawScene() {
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  const liquid = LIQUIDS[LEVELS[currentLevel]];
+  const surfaceY = H * 0.42;
+  const CX = W * 0.5;
+  const theta1 = parseFloat(slider.value) * Math.PI / 180;
+  const n1 = 1.0, n2 = liquid.n;
+  const sinTheta2 = (n1 / n2) * Math.sin(theta1);
+  const theta2 = Math.asin(sinTheta2);
+
+  // Background - top (air)
+  const airGrad = ctx.createLinearGradient(0, 0, 0, surfaceY);
+  airGrad.addColorStop(0, '#030912');
+  airGrad.addColorStop(1, '#071525');
+  ctx.fillStyle = airGrad;
+  ctx.fillRect(0, 0, W, surfaceY);
+
+  // Grid lines (air zone)
+  ctx.strokeStyle = 'rgba(0,255,231,0.04)';
+  ctx.lineWidth = 1;
+  for (let x = 0; x < W; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, surfaceY); ctx.stroke(); }
+  for (let y = 0; y < surfaceY; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+
+  // Liquid zone
+  const liqGrad = ctx.createLinearGradient(0, surfaceY, 0, H);
+  liqGrad.addColorStop(0, liquid.color.replace(/[\d.]+\)$/, '0.65)'));
+  liqGrad.addColorStop(1, liquid.color.replace(/[\d.]+\)$/, '0.25)'));
+  ctx.fillStyle = liqGrad;
+  ctx.fillRect(0, surfaceY, W, H - surfaceY);
+
+  // Liquid shimmer
+  ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+  ctx.lineWidth = 1;
+  for (let y = surfaceY + 30; y < H; y += 30) {
+    ctx.beginPath();
+    for (let x = 0; x < W; x += 4) {
+      const wave = Math.sin((x + Date.now() * 0.0005) * 0.08) * 2;
+      x === 0 ? ctx.moveTo(x, y + wave) : ctx.lineTo(x, y + wave);
+    }
+    ctx.stroke();
+  }
+
+  // Surface interface line
+  const surfGrad = ctx.createLinearGradient(0, 0, W, 0);
+  surfGrad.addColorStop(0, 'transparent');
+  surfGrad.addColorStop(0.3, 'rgba(0,255,231,0.6)');
+  surfGrad.addColorStop(0.7, 'rgba(0,255,231,0.6)');
+  surfGrad.addColorStop(1, 'transparent');
+  ctx.strokeStyle = surfGrad;
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(0, surfaceY); ctx.lineTo(W, surfaceY); ctx.stroke();
+
+  // Normal line (dashed)
+  ctx.strokeStyle = 'rgba(0,255,231,0.25)';
+  ctx.setLineDash([6, 4]);
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(CX, 10); ctx.lineTo(CX, H - 10); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Incident ray
+  const incLen = surfaceY - 10;
+  const ix = CX - incLen * Math.sin(theta1);
+  const iy = surfaceY - incLen * Math.cos(theta1);
+  const rayGrad = ctx.createLinearGradient(ix, iy, CX, surfaceY);
+  rayGrad.addColorStop(0, 'rgba(255,60,60,0.1)');
+  rayGrad.addColorStop(1, 'rgba(255,80,80,0.95)');
+  ctx.strokeStyle = rayGrad;
+  ctx.lineWidth = 2.5;
+  ctx.shadowColor = 'rgba(255,80,80,0.7)';
+  ctx.shadowBlur = 12;
+  ctx.beginPath(); ctx.moveTo(ix, iy); ctx.lineTo(CX, surfaceY); ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  // Refracted ray
+  const refLen = (H - surfaceY) - 10;
+  const rx = CX + refLen * Math.sin(theta2);
+  const ry = surfaceY + refLen * Math.cos(theta2);
+  const refGrad = ctx.createLinearGradient(CX, surfaceY, rx, ry);
+  refGrad.addColorStop(0, 'rgba(0,255,231,0.95)');
+  refGrad.addColorStop(1, 'rgba(0,200,180,0.2)');
+  ctx.strokeStyle = refGrad;
+  ctx.lineWidth = 2.5;
+  ctx.shadowColor = 'rgba(0,255,231,0.6)';
+  ctx.shadowBlur = 14;
+  ctx.beginPath(); ctx.moveTo(CX, surfaceY); ctx.lineTo(rx, ry); ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  // Arrow on incident ray
+  drawArrow(ctx, ix + (CX - ix) * 0.5, iy + (surfaceY - iy) * 0.5, theta1, 'rgba(255,80,80,0.8)');
+
+  // Angle arcs
+  // θ1 arc
+  const arcR = 48;
+  ctx.strokeStyle = 'rgba(255,183,0,0.6)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(CX, surfaceY, arcR, -Math.PI / 2, -Math.PI / 2 + theta1, false);
+  ctx.stroke();
+  // θ2 arc
+  ctx.strokeStyle = 'rgba(0,255,231,0.6)';
+  ctx.beginPath();
+  ctx.arc(CX, surfaceY, arcR, Math.PI / 2 - theta2, Math.PI / 2, false);
+  ctx.stroke();
+
+  // Angle labels
+  ctx.font = 'bold 13px Share Tech Mono';
+  ctx.fillStyle = 'rgba(255,183,0,0.9)';
+  ctx.fillText('θ₁=' + parseFloat(slider.value).toFixed(0) + '°',
+    CX - arcR * Math.sin(theta1 / 2) - 48,
+    surfaceY - arcR * Math.cos(theta1 / 2) + 5);
+
+  const t2deg = (theta2 * 180 / Math.PI).toFixed(1);
+  ctx.fillStyle = 'rgba(0,255,231,0.9)';
+  ctx.fillText('θ₂=' + t2deg + '°',
+    CX + arcR * Math.sin(theta2 / 2) + 8,
+    surfaceY + arcR * Math.cos(theta2 / 2) - 2);
+
+  // Labels
+  ctx.font = '600 12px Rajdhani';
+  ctx.fillStyle = 'rgba(180,220,255,0.5)';
+  ctx.fillText('AIR  n₁ = 1.000', 14, 22);
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.fillText('UNKNOWN LIQUID  n₂ = ?', 14, surfaceY + 22);
+
+  // Source dot (laser)
+  ctx.beginPath();
+  ctx.arc(ix, iy, 5, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255,80,80,0.8)';
+  ctx.shadowColor = 'red';
+  ctx.shadowBlur = 10;
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  // Update readings
+  const t1deg = parseFloat(slider.value);
+  const s1 = Math.sin(theta1).toFixed(4);
+  const s2 = Math.sin(theta2).toFixed(4);
+  const nCalc = (n1 * Math.sin(theta1) / Math.sin(theta2)).toFixed(4);
+  document.getElementById('r-theta1').textContent = t1deg.toFixed(1) + '°';
+  document.getElementById('r-theta2').textContent = parseFloat(t2deg).toFixed(1) + '°';
+  document.getElementById('r-sin1').textContent = s1;
+  document.getElementById('r-n').textContent = nCalc;
+  document.getElementById('fml-s1').textContent = s1;
+  document.getElementById('fml-s2').textContent = s2;
+  document.getElementById('fml-result').textContent = nCalc;
+  document.getElementById('angleVal').textContent = t1deg + '°';
+  document.getElementById('r-theta1').textContent = t1deg.toFixed(1) + '°';
+
+  // Liquid hint (category hint)
+  const hints = ['COLORLESS LIQUID', 'ORGANIC SOLVENT', 'ORGANIC SOLVENT', 'VISCOUS LIQUID', 'VEGETABLE OIL', 'AROMATIC COMPOUND', 'NATURAL SOLVENT', 'SULFUR COMPOUND'];
+  document.getElementById('liquid-hint').textContent = hints[LEVELS[currentLevel]];
+
+  requestAnimationFrame(() => {});
+}
+
+function drawArrow(ctx, x, y, angle, color) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(Math.atan2(Math.sin(angle) * (y > 0 ? 1 : -1), Math.cos(angle)));
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(0, -8);
+  ctx.lineTo(-4, 0);
+  ctx.lineTo(4, 0);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+slider.addEventListener('input', drawScene);
+
+// Init
+buildButtons();
+drawScene();
+// Animate liquid shimmer
+function animate() {
+  drawScene();
+  requestAnimationFrame(animate);
+}
+animate();
+</script>
+</body>
+</html>
