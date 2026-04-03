@@ -15,9 +15,11 @@
 - **Project Leader:** BELKHEDIM Haythem Abderaouf
 - **Group Number:** A4 G2
 - **Team Members:**
-  1. [Name 1]
-  2. [Name 2]
-  3. [Name 3]
+  1. BELKHEDIM Haythem Abderaouf
+  2. MOKRANI Zakaria
+  3. TADJINE Mohamed
+  4. KANOUNE Oussama
+  5. MEHIDI Tarek
 
 ---
 
