@@ -1,0 +1,72 @@
+const r2 = snell(r1, hit2.nExit, ng / 1.0);
+        if (r2) {
+          pts.push(add(pExit, scale(r2, 3.5)));
+        } else {
+          hasTIR = true;
+          // Show reflected ray inside glass
+          const N = hit2.nExit;
+          const refl = normalize(add(r1, scale(N, 2 * (-dot(N, r1)))));
+          pts.push(add(pExit, scale(refl, 2.8)));
+        }
+      }
+    }
+  }
+
+  // ── Draw rays ───────────────────────────────────────────────
+  if (pts.length >= 2) {
+    line(pts[0], pts[1], '#00e676');
+    arrowHead(pts[0], pts[1], '#00e676');
+  }
+  if (pts.length >= 3) {
+    line(pts[1], pts[2], '#ffeb3b', [6, 4]);
+    arrowHead(pts[1], pts[2], '#ffeb3b');
+  }
+  if (pts.length >= 4) {
+    const col = hasTIR ? '#ff9800' : '#ff5252';
+    line(pts[2], pts[3], col);
+    arrowHead(pts[2], pts[3], col);
+  }
+
+  // Entry / exit dots
+  if (pts.length >= 2) dot2d(pts[1], '#ffffff');
+  if (pts.length >= 3) dot2d(pts[2], '#ffffff');
+
+  document.getElementById('tir-msg').style.display = hasTIR ? 'inline' : 'none';
+}
+
+// ── Mouse / touch drag to rotate ─────────────────────────────
+let dragging = false, lastMX = 0, lastMY = 0;
+
+canvas.addEventListener('mousedown',  e => { dragging=true; lastMX=e.clientX; lastMY=e.clientY; });
+canvas.addEventListener('mousemove',  e => {
+  if (!dragging) return;
+  rotY += (e.clientX - lastMX) * 0.01;
+  rotX += (e.clientY - lastMY) * 0.01;
+  lastMX = e.clientX; lastMY = e.clientY;
+  render();
+});
+canvas.addEventListener('mouseup',    () => dragging = false);
+canvas.addEventListener('mouseleave', () => dragging = false);
+
+canvas.addEventListener('touchstart', e => {
+  dragging=true; lastMX=e.touches[0].clientX; lastMY=e.touches[0].clientY;
+  e.preventDefault();
+}, { passive: false });
+canvas.addEventListener('touchmove', e => {
+  if (!dragging) return;
+  rotY += (e.touches[0].clientX - lastMX) * 0.012;
+  rotX += (e.touches[0].clientY - lastMY) * 0.012;
+  lastMX = e.touches[0].clientX; lastMY = e.touches[0].clientY;
+  render(); e.preventDefault();
+}, { passive: false });
+canvas.addEventListener('touchend', () => dragging = false);
+
+// ── Wire up sliders ───────────────────────────────────────────
+['lx','ly','lz','ng'].forEach(id =>
+  document.getElementById(id).addEventListener('input', render)
+);
+
+render();
+</script>
+</body>
+</html>
