@@ -1,4 +1,247 @@
-const r2 = snell(r1, hit2.nExit, ng / 1.0);
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Snell's Law - Interactive 3D Simulator</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #1e1e1e; color: #ccc; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; }
+  h1 { font-size: 18px; font-weight: 500; color: #eee; margin-bottom: 16px; }
+  canvas { display: block; background: #1e1e1e; border: 1px solid #333; border-radius: 8px; }
+  .controls { width: 680px; margin-top: 14px; }
+  .ctrl { display: flex; align-items: center; gap: 10px; margin: 7px 0; font-size: 13px; color: #aaa; }
+  .ctrl label { min-width: 65px; }
+  .ctrl input[type=range] { flex: 1; accent-color: #00bcd4; }
+  .ctrl span { min-width: 42px; text-align: right; font-family: monospace; font-size: 12px; color: #80cbc4; }
+  #info { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 10px; font-size: 12px; color: #888; }
+  .dot { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: middle; }
+  #tir-msg { color: #ff9800; display: none; }
+  .hint { font-size: 11px; color: #555; margin-top: 8px; }
+</style>
+</head>
+<body>
+<h1>Interactive Vector Snell's Law</h1>
+<canvas id="c" width="680" height="420"></canvas>
+<div class="controls">
+  <div class="ctrl"><label>Laser X</label><input type="range" id="lx" min="-4" max="4" step="0.1" value="-3"><span id="lxv">-3.0</span></div>
+  <div class="ctrl"><label>Laser Y</label><input type="range" id="ly" min="-4" max="4" step="0.1" value="-1.5"><span id="lyv">-1.5</span></div>
+  <div class="ctrl"><label>Laser Z</label><input type="range" id="lz" min="-4" max="4" step="0.1" value="1"><span id="lzv">1.0</span></div>
+  <div class="ctrl"><label>n glass</label><input type="range" id="ng" min="1.1" max="2.5" step="0.05" value="1.5"><span id="ngv">1.50</span></div>
+  <div id="info">
+    <span><span class="dot" style="background:#00e676"></span>Incident ray</span>
+    <span><span class="dot" style="background:#ffeb3b"></span>Inside glass</span>
+    <span><span class="dot" style="background:#ff5252"></span>Refracted exit</span>
+    <span id="tir-msg">⚠️ Total internal reflection</span>
+  </div>
+  <p class="hint">🖱 Drag the canvas to rotate the view</p>
+</div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const W = 680, H = 420;
+
+// ── Math helpers ──────────────────────────────────────────────
+function normalize(v) {
+  const n = Math.sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2]);
+  return n < 1e-9 ? v : [v[0]/n, v[1]/n, v[2]/n];
+}
+function dot(a, b)    { return a[0]*b[0] + a[1]*b[1] + a[2]*b[2]; }
+function scale(v, s)  { return [v[0]*s, v[1]*s, v[2]*s]; }
+function add(a, b)    { return [a[0]+b[0], a[1]+b[1], a[2]+b[2]]; }
+function sub(a, b)    { return [a[0]-b[0], a[1]-b[1], a[2]-b[2]]; }
+
+// ── Snell's Law (vector form) ─────────────────────────────────
+function snell(I, N, eta) {
+  let cosI = -dot(N, I), Nadj = [...N];
+  if (cosI < 0) { cosI = -cosI; Nadj = [-N[0], -N[1], -N[2]]; }
+  const k = 1 - eta * eta * (1 - cosI * cosI);
+  if (k < 0) return null; // Total internal reflection
+  const t = eta * cosI - Math.sqrt(k);
+  return normalize(add(scale(I, eta), scale(Nadj, t)));
+}
+
+// ── Ray–Box intersection ──────────────────────────────────────
+function intersectBox(ro, rd, bmin, bmax) {
+  let tmin = -1e9, tmax = 1e9, nEntry = [0,0,0], nExit = [0,0,0];
+  for (let i = 0; i < 3; i++) {
+    if (Math.abs(rd[i]) < 1e-9) {
+      if (ro[i] < bmin[i] || ro[i] > bmax[i]) return null;
+    } else {
+      let inv = 1 / rd[i];
+      let t0 = (bmin[i] - ro[i]) * inv, t1 = (bmax[i] - ro[i]) * inv;
+      let n0 = [0,0,0], n1 = [0,0,0]; n0[i] = -1; n1[i] = 1;
+      if (inv < 0) { [t0, t1] = [t1, t0]; [n0, n1] = [n1, n0]; }
+      if (t0 > tmin) { tmin = t0; nEntry = [...n0]; }
+      if (t1 < tmax) { tmax = t1; nExit  = [...n1]; }
+    }
+  }
+  if (tmax <= tmin || tmax < 0) return null;
+  return { tmin, tmax, nEntry, nExit };
+}
+
+// ── 3-D → 2-D projection ─────────────────────────────────────
+let rotX = 0.35, rotY = -0.55;
+
+function project(p) {
+  // Rotate around Y
+  let x =  p[0]*Math.cos(rotY) + p[2]*Math.sin(rotY);
+  let z = -p[0]*Math.sin(rotY) + p[2]*Math.cos(rotY);
+  let y =  p[1];
+  // Rotate around X
+  let y2 = y*Math.cos(rotX) - z*Math.sin(rotX);
+  let z2 = y*Math.sin(rotX) + z*Math.cos(rotX);
+  // Perspective
+  const fov = 5.5;
+  const sx = W/2 + (x / (z2 + fov)) * 260;
+  const sy = H/2 - (y2 / (z2 + fov)) * 260;
+  return [sx, sy];
+}
+
+// ── Drawing helpers ───────────────────────────────────────────
+function line(a, b, color, dash=[]) {
+  const [ax,ay] = project(a), [bx,by] = project(b);
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.8;
+  ctx.setLineDash(dash);
+  ctx.beginPath(); ctx.moveTo(ax,ay); ctx.lineTo(bx,by); ctx.stroke();
+  ctx.restore();
+}
+
+function arrowHead(a, b, color) {
+  const [ax,ay] = project(a), [bx,by] = project(b);
+  const dx = bx-ax, dy = by-ay, len = Math.sqrt(dx*dx+dy*dy);
+  if (len < 1) return;
+  const ux = dx/len, uy = dy/len;
+  const mx = ax+dx*0.6, my = ay+dy*0.6;
+  const sz = 9;
+  ctx.save();
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(mx + ux*sz, my + uy*sz);
+  ctx.lineTo(mx - uy*sz*0.45, my + ux*sz*0.45);
+  ctx.lineTo(mx + uy*sz*0.45, my - ux*sz*0.45);
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+
+function dot2d(p, color) {
+  const [x,y] = project(p);
+  ctx.save();
+  ctx.fillStyle = color;
+  ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+
+// ── Draw glass box (wireframe) ────────────────────────────────
+const BOX_MIN = [-1, -1, -1];
+const BOX_MAX = [ 1,  1,  1];
+
+function drawBox() {
+  const corners = [];
+  for (let x of [BOX_MIN[0], BOX_MAX[0]])
+  for (let y of [BOX_MIN[1], BOX_MAX[1]])
+  for (let z of [BOX_MIN[2], BOX_MAX[2]])
+    corners.push([x,y,z]);
+
+  const edges = [
+    [0,1],[2,3],[4,5],[6,7],
+    [0,2],[1,3],[4,6],[5,7],
+    [0,4],[1,5],[2,6],[3,7]
+  ];
+
+  ctx.save();
+  ctx.strokeStyle = 'rgba(0,188,212,0.35)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4,4]);
+  for (const [i,j] of edges) {
+    const [ax,ay] = project(corners[i]);
+    const [bx,by] = project(corners[j]);
+    ctx.beginPath(); ctx.moveTo(ax,ay); ctx.lineTo(bx,by); ctx.stroke();
+  }
+
+  // Faces with slight fill
+  const faces = [
+    [0,1,3,2],[4,5,7,6],
+    [0,1,5,4],[2,3,7,6],
+    [0,2,6,4],[1,3,7,5]
+  ];
+  ctx.setLineDash([]);
+  ctx.fillStyle = 'rgba(0,188,212,0.04)';
+  for (const f of faces) {
+    ctx.beginPath();
+    const [sx,sy] = project(corners[f[0]]);
+    ctx.moveTo(sx,sy);
+    for (let k=1;k<4;k++) { const [px,py]=project(corners[f[k]]); ctx.lineTo(px,py); }
+    ctx.closePath(); ctx.fill();
+  }
+  ctx.restore();
+}
+
+// ── Draw axes ─────────────────────────────────────────────────
+function drawAxes() {
+  const O = [0,0,0];
+  const ax = [[2.2,0,0],[0,2.2,0],[0,0,2.2]];
+  const cols = ['#f44','#4f4','#48f'];
+  const lbls = ['X','Y','Z'];
+  for (let i=0;i<3;i++) {
+    line(O, ax[i], cols[i]);
+    const [px,py] = project(ax[i]);
+    ctx.fillStyle = cols[i]; ctx.font='11px sans-serif';
+    ctx.fillText(lbls[i], px+4, py-4);
+  }
+}
+
+// ── Normal arrow helper ───────────────────────────────────────
+function drawNormal(p, n, color='#888') {
+  line(p, add(p, scale(n, 0.6)), color, [3,3]);
+}
+
+// ── Main render ───────────────────────────────────────────────
+function render() {
+  ctx.clearRect(0,0,W,H);
+
+  // Update slider labels
+  const lx = +document.getElementById('lx').value;
+  const ly = +document.getElementById('ly').value;
+  const lz = +document.getElementById('lz').value;
+  const ng = +document.getElementById('ng').value;
+  document.getElementById('lxv').textContent = lx.toFixed(1);
+  document.getElementById('lyv').textContent = ly.toFixed(1);
+  document.getElementById('lzv').textContent = lz.toFixed(1);
+  document.getElementById('ngv').textContent = ng.toFixed(2);
+
+  drawAxes();
+  drawBox();
+
+  // Laser source and direction
+  const src = [lx, ly, lz];
+  const dir = normalize(sub([0,0,0], src)); // aimed at origin
+
+  // Ray 1: air → glass
+  const hit1 = intersectBox(src, dir, BOX_MIN, BOX_MAX);
+  const pts = [src];
+  let hasTIR = false;
+
+  if (hit1) {
+    const pEntry = add(src, scale(dir, hit1.tmin));
+    pts.push(pEntry);
+    drawNormal(pEntry, hit1.nEntry, '#555');
+
+    // Refract into glass
+    const r1 = snell(dir, hit1.nEntry, 1.0 / ng);
+    if (r1) {
+      // Ray 2: inside glass
+      const hit2 = intersectBox(pEntry, r1, BOX_MIN, BOX_MAX);
+      if (hit2) {
+        const pExit = add(pEntry, scale(r1, hit2.tmax));
+        pts.push(pExit);
+        drawNormal(pExit, hit2.nExit, '#555');
+
+        // Refract out of glass
+        const r2 = snell(r1, hit2.nExit, ng / 1.0);
         if (r2) {
           pts.push(add(pExit, scale(r2, 3.5)));
         } else {
